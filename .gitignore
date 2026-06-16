@@ -1,0 +1,8 @@
+venv/
+.env
+config.json
+__pycache__/
+*.pyc
+.DS_Store
+*.json
+!config.json.example
