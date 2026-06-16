@@ -3,7 +3,7 @@ services:
     name: attack-surface-mapper
     runtime: docker
     plan: free
-    healthCheckPath: /
+    healthCheckPath: /health
     envVars:
       - key: SHODAN_API_KEY
         sync: false

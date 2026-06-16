@@ -15,8 +15,9 @@ RUN apt-get update \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY cloud_risk_scanner.py streamlit_app.py ./
+COPY app.py cloud_risk_scanner.py ./
 
-ENV PORT=8501
+ENV PORT=10000
+EXPOSE 10000
 
-CMD ["sh", "-c", "streamlit run streamlit_app.py --server.port=${PORT:-8501} --server.address=0.0.0.0 --server.headless=true --browser.gatherUsageStats=false"]
+CMD ["python", "app.py"]

@@ -1,8 +1,10 @@
 # Attack Surface Mapper
 
-Web-based cloud attack surface scanner with a Streamlit UI. Discovers subdomains, maps cloud providers, checks Shodan for open ports, probes S3 buckets, and searches GitHub for leaked credentials.
+Web-based cloud attack surface scanner for authorized security review. It discovers subdomains, maps likely cloud providers, checks Shodan for risky open ports, probes common S3 bucket names, and searches GitHub for credential exposure.
 
-## Local development
+The app uses a small built-in Python web server and is ready for Docker deployment on Render. Streamlit is not used.
+
+## Local Development
 
 ```bash
 python -m venv venv
@@ -13,64 +15,38 @@ pip install -r requirements.txt
 cp config.json.example config.json
 # Edit config.json with your keys
 
-streamlit run streamlit_app.py
+python app.py
 ```
+
+Open `http://localhost:10000`.
 
 Install [subfinder](https://github.com/projectdiscovery/subfinder) locally for broader subdomain discovery. Without it, crt.sh is still used.
 
-## Deploy to Render
-
-Render is recommended over Streamlit Community Cloud because you can run Docker (subfinder), keep secrets in env vars, and gate access with a password.
-
-### 1. Prepare the repo
-
-```bash
-git init
-git add .
-git commit -m "Add Render deployment"
-```
-
-Push to GitHub. **Do not commit `config.json`** — it is listed in `.gitignore`.
-
-Rotate any API keys that were previously stored in `config.json` if that file was ever shared or committed.
-
-### 2. Create the Render service
-
-1. Go to [render.com](https://render.com) and sign in.
-2. **New → Blueprint** (if using `render.yaml`) or **New → Web Service**.
-3. Connect your GitHub repository.
-4. If not using Blueprint:
-   - **Environment:** Docker
-   - **Branch:** `main`
-   - Dockerfile path: `Dockerfile`
-5. Add environment variables in the Render dashboard:
+## Environment Variables
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `SHODAN_API_KEY` | Recommended | Shodan API key for port/org lookups |
-| `GITHUB_TOKEN` | Recommended | GitHub PAT for code search (needs `public_repo` scope) |
-| `APP_PASSWORD` | Recommended | Password visitors must enter before using the app |
+| `SHODAN_API_KEY` | Recommended | Enables Shodan host lookups for open ports and org data |
+| `GITHUB_TOKEN` | Recommended | Enables GitHub code search for credential exposure |
+| `APP_PASSWORD` | Recommended | Password required before visitors can run scans |
+| `PORT` | Render sets this | Web server port; defaults to `10000` |
+| `SCAN_WORKERS` | Optional | Parallel subdomain checks; defaults to `8` |
+| `HTTP_TIMEOUT` | Optional | HTTP timeout in seconds; defaults to `10` |
 
-6. Deploy. Render assigns a URL like `https://attack-surface-mapper.onrender.com`.
+## Deploy To Render
 
-Share that URL and `APP_PASSWORD` only with people you trust.
+1. Push this repo to GitHub.
+2. In Render, choose **New -> Blueprint**.
+3. Select `luke-wester/attack-surface-mapper`.
+4. Render will read `render.yaml` and build the Docker service.
+5. Add `APP_PASSWORD`, `SHODAN_API_KEY`, and `GITHUB_TOKEN` in the Render dashboard.
+6. Deploy.
 
-### Render free tier notes
-
-- Services **spin down after ~15 minutes** of no traffic; the first visit after sleep can take 30–60 seconds to wake up.
-- Free tier has CPU/memory limits; scans of 50 subdomains can take a few minutes.
-
-## Why not Streamlit Community Cloud?
-
-Common limitations that push security tools toward Render:
-
-- Hard to install CLI tools like **subfinder**
-- Free apps are **public** unless you pay for private/team hosting
-- Free tier historically required a **public** GitHub repo
-- Less control over Docker, env vars, and runtime compared to Render
+The health check endpoint is `/health`.
 
 ## Security
 
 - Never commit API keys or `config.json`.
-- Use `APP_PASSWORD` so strangers cannot abuse your Shodan/GitHub quotas.
-- Only scan domains you are authorized to test.
+- Use `APP_PASSWORD` so strangers cannot burn your API quotas.
+- Only scan domains you own or have written permission to test.
+- Credential matches are masked before being returned in the UI or JSON report.
